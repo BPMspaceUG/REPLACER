@@ -64,7 +64,7 @@
 	  $result = json_decode ($result);
 	  if (count($result) > 0) {
 		$result = get_object_vars($result[0])["$language"];
-	  } else $result = "not found";
+	  } else $result = "REPLACER nothing in DB";
 	  return $result;
 	}	
   }
