@@ -61,43 +61,11 @@
 	  //print_r($params["paramJS"]);
 	  $result = $RP->$command($params["paramJS"]);
 	  // Output
-	  //echo $result;
-	  $string =str_replace('"}]','',str_replace('[{"":"','',str_replace($language,'',$result)));
-	  $string =str_replace('','',$string);
-	  
-	  $string = strtr($string, array(
-		'u00A0'    => ' ',
-		'u0026'    => '&',
-		'u003C'    => '<',
-		'u003E'    => '>',
-		'u00E4'    => 'ä',
-		'u00C4'    => 'Ä',
-		'u00F6'    => 'ö',
-		'u00D6'    => 'Ö',
-		'u00FC'    => 'ü',
-		'u00DC'    => 'Ü',
-		'u00DF'    => 'ß',
-		'u20AC'    => '€',
-		'u0024'    => '$',
-		'u00A3'    => '£',
-	 
-		'u00a0'    => ' ',
-		'u003c'    => '<',
-		'u003e'    => '>',
-		'u00e4'    => 'ä',
-		'u00c4'    => 'Ä',
-		'u00f6'    => 'ö',
-		'u00d6'    => 'Ö',
-		'u00fc'    => 'ü',
-		'u00dc'    => 'Ü',
-		'u00df'    => 'ß',
-		'u20ac'    => '€',
-		'u00a3'    => '£',
-		));
-		if ($string == '[]') {
-			$string = '[ERROR REPLACER]<br/>';
-		} 
-	  return stripcslashes($string);
+	  $result = json_decode ($result);
+	  if (count($result) > 0) {
+		$result = get_object_vars($result[0])["$language"];
+	  } else $result = "not found";
+	  return $result;
 	}	
   }
   // Class Definition ends here

@@ -1,4 +1,18 @@
 <?php
+
+  // Includes
+  include_once '../phpSecureLogin/includes/db_connect.inc.php';
+  include_once '../phpSecureLogin/includes/functions.inc.php';
+  sec_session_start();
+  
+  if(login_check($mysqli) != true) {
+    header("Location: ../index.php?error_messages='You are not logged in!'");
+    exit();
+  }
+  else {
+    $logged = 'in';
+  }
+
   // Parameter and inputstream
   $params = json_decode(file_get_contents('php://input'), true);
   $command = $params["cmd"];
@@ -150,7 +164,7 @@
           </a>
         </div>
         <div class="col-md-12 collapse in text-right" id="bpm-liam-header">
-          <?php include_once('../_header_LIAM.inc.php'); ?>          
+          <?php require_once('./../_header_LIAM.inc.php'); ?>          
         </div>
       </div>
     </div>
