@@ -56,14 +56,33 @@
 	  $params["paramJS"]['limitStart']='0';
 	  $params["paramJS"]['limitSize']='10';
 	  
-	  $params["paramJS"]['select']=$language;
+	switch ($language)
+	{
+		case 'de':
+        {
+			$language_col = "replacer_language_de";
+			break;
+        }
+		case 'en':
+        {
+			$language_col = "replacer_language_en"; 
+			break;
+        }
+		
+		default:
+        {
+			$language_col = "replacer_language_de";
+        }
+	}
+		
+	  $params["paramJS"]['select']=$language_col;
 	  $params["paramJS"]['where']='replacer_pattern = "' . $replacer .'"';
 	  //print_r($params["paramJS"]);
 	  $result = $RP->$command($params["paramJS"]);
 	  // Output
 	  $result = json_decode ($result);
 	  if (count($result) > 0) {
-		$result = get_object_vars($result[0])["$language"];
+		$result = get_object_vars($result[0])["$language_col"];
 	  } else $result = "REPLACER nothing in DB";
 	  return $result;
 	}	
