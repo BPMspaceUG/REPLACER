@@ -83,7 +83,7 @@
 	  $result = json_decode ($result);
 	  if (count($result) > 0) {
 		$result = get_object_vars($result[0])["$language_col"];
-	  } else $result = "REPLACER nothing in DB";
+	  } else $result = "REPLACER nothing in REPLACER DB for pattern <strong>\"" . $replacer."\"";
 	  return $result;
 	}	
   }
