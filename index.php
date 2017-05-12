@@ -245,6 +245,10 @@
                       <button id="btnRow{{'' + $parent.$index + $index}}" class="btn btn-success btnUpdate" title="Update"
                         ng-click="send('update', {row:row, colum:$index, table:table, x:[$index, $parent.$index]})">
                         <i class="fa fa-floppy-o"></i><!-- Update--></button>
+                      <!-- EDIT Button -->
+                      <button id="del{{$index}}" class="btn btn-default" title="Edit"
+                        ng-click="">
+                        <i class="fa fa-pencil text-primary"></i><!-- Edit --></button>
                     </td>
                     <td ng-repeat="cell in row track by $index">
                       <!-- xeditable controllfield -->
