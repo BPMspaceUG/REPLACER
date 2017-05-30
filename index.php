@@ -482,10 +482,10 @@ used to vertically center elements, may need modification if you're not using de
   <nav class="navbar navbar-nav">
     <div class="container">
       <ul class="nav nav-pills" id="bpm-menu">
-        <li ng-repeat="table in tables">
+        <li ng-repeat="table in tables | orderBy : 'table_alias'">
           <a id="nav-{{table.table_name}}" title="Goto table {{table.table_alias}}"
             href="#{{table.table_name}}" data-toggle="tab" ng-click="changeTab()">
-            <i class="{{table.table_icon}}"></i>&nbsp;{{table.table_alias}}</a>
+            <i class="{{table.table_icon}}"></i>&nbsp;{{table.table_alias}}</a>            
         </li>
       </ul>
     </div>
@@ -532,7 +532,7 @@ used to vertically center elements, may need modification if you're not using de
                           ng-click="openSEPopup(table, row)">{{subState(cell)}}</button>
                       </div>
                       <!-- Normal field -->
-                      <p ng-hide="((table.columnames[$index].indexOf('state') >= 0) && table.SE_enabled)">{{cell}}</p>
+                      <p ng-hide="((table.columnames[$index].indexOf('state') >= 0) && table.SE_enabled)">{{cell | limitTo: 20}}</p>
                     </td>
                     <!-- Edit options -->
                     <td class="controllcoulm" ng-hide="table.is_read_only">
@@ -862,16 +862,15 @@ app.controller('genCtrl', function ($scope, $http, $sce) {
 
 	       	// Count entries
 	        $scope.countEntries(tbl.table_name);
-					// open first table in navbar
-					 $('#nav-'+$scope.tables[0].table_name).click();
 					// TODO: Platzhalter für Scope Texfelder generierung  
+          $('#nav-replacer').click()
 				});
 				// Save tablenames in scope
 				$scope.tablenames = $scope.tables.map(function(tbl){return tbl.table_name})
 			}
 		)
 		$scope.status = "Initializing... done";
-
+    // open first table in navbar
 
   		/*********************************************************************/
 
