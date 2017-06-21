@@ -312,6 +312,7 @@
   <link rel="stylesheet" href="../css/bootstrap.min.css">
   <link rel="stylesheet" href="../css/bootstrap-theme.min.css">
   <link rel="stylesheet" href="../css/font-awesome.min.css">
+  <link rel="stylesheet" href="css/grideditor.css">
   <!-- Custom CSS -->
   <style>
 .newRows {background-color: #cffda2; /*#d8edff;*/}
@@ -414,7 +415,30 @@ used to vertically center elements, may need modification if you're not using de
 .state6 {background-color: lightblue;}
 .state7 {background-color: lightgreen;}
 
+
+/******************************** Custom ******************************/
+
+.editor {width: 75%;}
+
   </style>
+  <!-- JS -->
+  <script type="text/javascript" src="../js/angular.min.js"></script>
+  <script type="text/javascript" src="../js/angular-sanitize.min.js"></script>
+  <script type="text/javascript" src="../js/ui-bootstrap-1.3.1.min.js"></script>
+  <script type="text/javascript" src="../js/ui-bootstrap-tpls-1.3.1.min.js"></script>  
+  <script type="text/javascript" src="../js/jquery-2.1.4.min.js"></script>
+  <script type="text/javascript" src="../js/bootstrap.min.js"></script>
+  <script type="text/javascript" src="../js/xeditable.min.js"></script>
+  <!-- Neuer Editor -->
+  <!--<script src="https://code.jquery.com/jquery-1.11.2.js"></script>-->
+  <script src="https://code.jquery.com/ui/1.11.2/jquery-ui.js"></script>
+  <!--
+  <script type="text/javascript" src="../js/tinymce.min.js"></script>
+  <script type="text/javascript" src="../js/tinymceng.js"></script>
+  -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/4.3.2/tinymce.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/4.3.2/jquery.tinymce.min.js"></script>
+  <script type="text/javascript" src="js/jquery.grideditor.min.js"></script>
 </head>
 <body ng-app="genApp" ng-controller="genCtrl">
   <div>  <!--  body menu starts here -->
@@ -458,10 +482,10 @@ used to vertically center elements, may need modification if you're not using de
   <nav class="navbar navbar-nav">
     <div class="container">
       <ul class="nav nav-pills" id="bpm-menu">
-        <li ng-repeat="table in tables">
+        <li ng-repeat="table in tables | orderBy : 'table_alias'">
           <a id="nav-{{table.table_name}}" title="Goto table {{table.table_alias}}"
             href="#{{table.table_name}}" data-toggle="tab" ng-click="changeTab()">
-            <i class="{{table.table_icon}}"></i>&nbsp;{{table.table_alias}}</a>
+            <i class="{{table.table_icon}}"></i>&nbsp;{{table.table_alias}}</a>            
         </li>
       </ul>
     </div>
@@ -508,7 +532,7 @@ used to vertically center elements, may need modification if you're not using de
                           ng-click="openSEPopup(table, row)">{{subState(cell)}}</button>
                       </div>
                       <!-- Normal field -->
-                      <p ng-hide="((table.columnames[$index].indexOf('state') >= 0) && table.SE_enabled)">{{cell}}</p>
+                      <p ng-hide="((table.columnames[$index].indexOf('state') >= 0) && table.SE_enabled)">{{cell | limitTo: 20}}</p>
                     </td>
                     <!-- Edit options -->
                     <td class="controllcoulm" ng-hide="table.is_read_only">
@@ -580,21 +604,39 @@ used to vertically center elements, may need modification if you're not using de
     </div>
   <!-- Modal for Editing DataRows -->
   <div class="modal fade" id="modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
-    <div class="modal-dialog" role="document">
+    <div class="modal-dialog editor" role="document">
       <div class="modal-content">
         <div class="modal-header">
           <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
           <h4 class="modal-title">Edit</h4>
         </div>
         <div class="modal-body">
-          <form class="form-horizontal">
-            <div class="form-group" ng-repeat="(key, value) in selectedTask">
-              <label for="x" class="col-sm-3 control-label">{{key}}</label>
+
+          <div class="form-group">
+              <label for="x" class="col-sm-3 control-label">Pattern</label>
               <div class="col-sm-9">
-                <input type="text" class="form-control" ng-model="selectedTask[key]">
+                <input type="text" class="form-control" ng-model="selectedTask.replacer_pattern">
+              </div>
+          </div>
+          <div class="clearfix"></div>
+          <br>
+
+          <div>
+            <!-- Nav tabs -->
+            <ul class="nav nav-tabs" role="tablist">
+              <li role="presentation" class="active"><a href="#de" aria-controls="home" role="tab" data-toggle="tab">Deutsch</a></li>
+              <li role="presentation"><a href="#en" aria-controls="profile" role="tab" data-toggle="tab">Englisch</a></li>
+            </ul>
+            <!-- Tab panes -->
+            <div class="tab-content">
+              <div role="tabpanel" class="tab-pane active" id="de">
+                <div class="grid1"></div>
+              </div>
+              <div role="tabpanel" class="tab-pane" id="en">
+                <div class="grid2"></div>
               </div>
             </div>
-          </form>
+          </div>
         </div>
         <div class="modal-footer">
           <button class="btn btn-primary" ng-click="saveTask()" data-dismiss="modal">OK</button>
@@ -648,21 +690,12 @@ used to vertically center elements, may need modification if you're not using de
       </small>
     </div>
   </div>
-  <!-- JS -->
-  <script type="text/javascript" src="../js/angular.min.js"></script>
-  <script type="text/javascript" src="../js/angular-sanitize.min.js"></script>
-  <script type="text/javascript" src="../js/ui-bootstrap-1.3.1.min.js"></script>
-  <script type="text/javascript" src="../js/ui-bootstrap-tpls-1.3.1.min.js"></script>
-  <script type="text/javascript" src="../js/jquery-2.1.4.min.js"></script>
-  <script type="text/javascript" src="../js/tinymce.min.js"></script>
-  <script type="text/javascript" src="../js/tinymceng.js"></script>
-  <script type="text/javascript" src="../js/bootstrap.min.js"></script>
-  <script type="text/javascript" src="../js/xeditable.min.js"></script>
   <!-- the line below gets replaced with the generated table -->
   <!-- replaceDBContent -->
   <!-- Angular handling-script -->
   <script type="text/javascript">
-var app = angular.module("genApp", ["xeditable"])
+var app = angular.module("genApp", ["xeditable", "ngSanitize"])
+
 app.run(function(editableOptions) {
   editableOptions.theme = 'bs2'; // bootstrap3 theme. Can be also 'bs2', 'default'
 });
@@ -673,7 +706,7 @@ app.filter('ceil', function() {
     };
 });
 
-app.controller('genCtrl', function ($scope, $http) {
+app.controller('genCtrl', function ($scope, $http, $sce) {
 
   $scope.historyLog = false  
   $scope.tables = []
@@ -702,9 +735,14 @@ app.controller('genCtrl', function ($scope, $http) {
   $scope.loadRow = function(tbl, row) {
     $scope.selectedTask = angular.copy(row)
     $scope.selectedTable = tbl
+    $scope.initEditor()
   }
   $scope.saveTask = function() {
     console.log("Ok button clicked...")
+    // Read out editors
+    $scope.selectedTask.replacer_language_de = $('#myGrid').gridEditor('getHtml');
+    $scope.selectedTask.replacer_language_en = $('#myGrid2').gridEditor('getHtml');
+    // Send data
     $scope.send('update')
   }
   $scope.gotoPage = function(new_page_index, table, index) {
@@ -824,16 +862,15 @@ app.controller('genCtrl', function ($scope, $http) {
 
 	       	// Count entries
 	        $scope.countEntries(tbl.table_name);
-					// open first table in navbar
-					 $('#nav-'+$scope.tables[0].table_name).click();
 					// TODO: Platzhalter für Scope Texfelder generierung  
+          $('#nav-replacer').click()
 				});
 				// Save tablenames in scope
 				$scope.tablenames = $scope.tables.map(function(tbl){return tbl.table_name})
 			}
 		)
 		$scope.status = "Initializing... done";
-
+    // open first table in navbar
 
   		/*********************************************************************/
 
@@ -915,6 +952,30 @@ app.controller('genCtrl', function ($scope, $http) {
   }
 
   $scope.initTables();
+
+  $scope.initEditor = function() {
+    //$scope.var_a = $sce.trustAsHtml($scope.selectedTask.replacer_language_de);
+    //$scope.var_b = $sce.trustAsHtml($scope.selectedTask.replacer_language_en);
+
+    console.log("##########################################");
+
+    // Editor 1 init
+    xxx = $sce.trustAsHtml($scope.selectedTask.replacer_language_de)
+    var e = $('<textarea class="inputHTML1">'+xxx+'</textarea><div id="myGrid"></div>')
+    $('.grid1').append(e)
+    $('#myGrid').gridEditor({new_row_layouts: [[12], [6,6], [9,3]], source_textarea: $(".inputHTML1")});
+
+    /*********************************************************/
+
+    // Editor 2 init
+    xxx = $sce.trustAsHtml($scope.selectedTask.replacer_language_en)
+    var e = $('<textarea class="inputHTML2">'+xxx+'</textarea><div id="myGrid2"></div>')
+    $('.grid2').append(e)
+    $('#myGrid2').gridEditor({new_row_layouts: [[12], [6,6], [9,3]], source_textarea: $(".inputHTML2")});
+
+    /*********************************************************/
+
+  }
 
   /*
   Allround send for changes to DB
@@ -1009,7 +1070,7 @@ app.controller('genCtrl', function ($scope, $http) {
         //-------------------- Entry Deleted
         if (response != 0 && (cud == 'delete' || cud == 'update')) {
           // if state was updated then
-          $('#myModal').modal('hide')
+          //$('#myModal').modal('hide')
           // Refresh current table
           /*act_tbl = $scope.tables.find(function(t){
             return t.table_name == param.table.table_name})*/
@@ -1063,6 +1124,14 @@ app.directive('animateOnChange', function($timeout) {
       }
     });
   };
-});</script>       
+});
+  //--------------------------------------------- CUSTOM JS
+
+  $('#modal').on('hidden.bs.modal', function () {
+    $('.grid1').empty()
+    $('.grid2').empty()
+  })
+
+</script>
 </body>
 </html>
