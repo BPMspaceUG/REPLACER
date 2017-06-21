@@ -27,6 +27,9 @@
       $db->query("SET NAMES utf8");
       $this->db = $db;
     }
+    public function getDB(){
+      return $this->db;
+    }
     // Format data for output
     private function parseToJSON($result) {
       $results_array = array();
