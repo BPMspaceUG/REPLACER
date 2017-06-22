@@ -425,20 +425,22 @@ used to vertically center elements, may need modification if you're not using de
   <script type="text/javascript" src="../js/angular.min.js"></script>
   <script type="text/javascript" src="../js/angular-sanitize.min.js"></script>
   <script type="text/javascript" src="../js/ui-bootstrap-1.3.1.min.js"></script>
-  <script type="text/javascript" src="../js/ui-bootstrap-tpls-1.3.1.min.js"></script>  
+  <script type="text/javascript" src="../js/ui-bootstrap-tpls-1.3.1.min.js"></script>
   <script type="text/javascript" src="../js/jquery-2.1.4.min.js"></script>
   <script type="text/javascript" src="../js/bootstrap.min.js"></script>
   <script type="text/javascript" src="../js/xeditable.min.js"></script>
   <!-- Neuer Editor -->
   <!--<script src="https://code.jquery.com/jquery-1.11.2.js"></script>-->
   <script src="https://code.jquery.com/ui/1.11.2/jquery-ui.js"></script>
+  <script src="js/bootstrap-ckeditor-fix.js"></script>
   <!--
   <script type="text/javascript" src="../js/tinymce.min.js"></script>
   <script type="text/javascript" src="../js/tinymceng.js"></script>
-  -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/4.3.2/tinymce.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/4.3.2/jquery.tinymce.min.js"></script>
-  <script type="text/javascript" src="js/jquery.grideditor.min.js"></script>
+  -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ckeditor/4.5.4/ckeditor.js"></script>
+  <script src="js/jquery.grideditor.min.js"></script>
 </head>
 <body ng-app="genApp" ng-controller="genCtrl">
   <div>  <!--  body menu starts here -->
@@ -550,22 +552,26 @@ used to vertically center elements, may need modification if you're not using de
                   <!-- Table AddRow -->
                   <tr class="newRows" ng-hide="table.is_read_only">
                    <td ng-repeat="col in table.newRows[0] track by $index">
-                      <!--<textarea class="form-control nRws" ng-model="table.newRows[0][$index]"></textarea>-->
-                      <!-- Number -->
-                      <input class="form-control nRws" type="number"
-                        ng-show="table.columnsX[$index].COLUMN_TYPE.indexOf('int') >= 0 && table.columnsX[$index].COLUMN_TYPE.indexOf('tiny') < 0"
-                        ng-model="table.newRows[0][$index]">
-                      <!-- Text -->
-                      <input class="form-control nRws" type="text"
-                        ng-show="table.columnsX[$index].COLUMN_TYPE.indexOf('int') < 0"
-                        ng-model="table.newRows[0][$index]">
-                      <!-- Date -->
-                      <!-- Boolean (tinyint or boolean) -->
-                      <input class="form-control nRws" type="checkbox"
-                        ng-show="table.columnsX[$index].COLUMN_TYPE.indexOf('tinyint') >= 0"
-                        ng-model="table.newRows[0][$index]">
-                      <!-- Datatype --> 
-                      <div><small>{{ table.columnsX[$index].COLUMN_TYPE }}</small></div>
+                      <div ng-if="$index != 0">
+                        <!--<textarea class="form-control nRws" ng-model="table.newRows[0][$index]"></textarea>-->
+                        <!-- Number -->
+                        <input class="form-control nRws" type="number"
+                          ng-show="table.columnsX[$index].COLUMN_TYPE.indexOf('int') >= 0 && table.columnsX[$index].COLUMN_TYPE.indexOf('tiny') < 0"
+                          ng-model="table.newRows[0][$index]"
+                          ng-init="table.newRows[0][$index] = initVal($index)"
+                          ng-disabled="($index >= 2)">
+                        <!-- Text -->
+                        <input class="form-control nRws" type="text"
+                          ng-show="table.columnsX[$index].COLUMN_TYPE.indexOf('int') < 0"
+                          ng-model="table.newRows[0][$index]">
+                        <!-- Date -->
+                        <!-- Boolean (tinyint or boolean) -->
+                        <input class="form-control nRws" type="checkbox"
+                          ng-show="table.columnsX[$index].COLUMN_TYPE.indexOf('tinyint') >= 0"
+                          ng-model="table.newRows[0][$index]">
+                        <!-- Datatype --> 
+                        <div><small>{{ table.columnsX[$index].COLUMN_TYPE }}</small></div>
+                      </div>
                    </td>
                    <td>
                       <!-- Create Button -->
@@ -717,6 +723,16 @@ app.controller('genCtrl', function ($scope, $http, $sce) {
   $scope.sqlwhere = []
   $scope.nextstates = []
   $scope.statenames = []
+
+
+  $scope.initVal = function(index) {
+    if (index == 2)
+      return '<div class="row"><div class="col-md-12 col-sm-12 col-xs-12 column"><div class="ge-content ge-content-type-ckeditor" data-ge-content-type="ckeditor"><p>English</p></div></div></div>'
+    if (index == 3)
+      return '<div class="row"><div class="col-md-12 col-sm-12 col-xs-12 column"><div class="ge-content ge-content-type-ckeditor" data-ge-content-type="ckeditor"><p>Deutsch</p></div></div></div>'
+    if (index == 4)
+      return 6
+  }
 
   $scope.changeRow = function(table, row, operation) {
   	// TODO: this will be the function for everything
@@ -963,7 +979,11 @@ app.controller('genCtrl', function ($scope, $http, $sce) {
     xxx = $sce.trustAsHtml($scope.selectedTask.replacer_language_de)
     var e = $('<textarea class="inputHTML1">'+xxx+'</textarea><div id="myGrid"></div>')
     $('.grid1').append(e)
-    $('#myGrid').gridEditor({new_row_layouts: [[12], [6,6], [9,3]], source_textarea: $(".inputHTML1")});
+    $('#myGrid').gridEditor({
+      new_row_layouts: [[12], [6,6], [9,3]],
+      source_textarea: $(".inputHTML1"),
+      content_types: ['ckeditor']
+    });
 
     /*********************************************************/
 
@@ -971,7 +991,11 @@ app.controller('genCtrl', function ($scope, $http, $sce) {
     xxx = $sce.trustAsHtml($scope.selectedTask.replacer_language_en)
     var e = $('<textarea class="inputHTML2">'+xxx+'</textarea><div id="myGrid2"></div>')
     $('.grid2').append(e)
-    $('#myGrid2').gridEditor({new_row_layouts: [[12], [6,6], [9,3]], source_textarea: $(".inputHTML2")});
+    $('#myGrid2').gridEditor({
+      new_row_layouts: [[12], [6,6], [9,3]],
+      source_textarea: $(".inputHTML2"),
+      content_types: ['ckeditor']
+    });
 
     /*********************************************************/
 
