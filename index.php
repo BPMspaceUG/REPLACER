@@ -230,10 +230,18 @@
     //================================== READ
     public function read($param) {
       $where = isset($param["where"]) ? $param["where"] : "";
-      if (trim($where) <> "") $where = " WHERE ".$param["where"];
+      $orderby = isset($param["orderby"]) ? $param["orderby"] : "";
+      $ascdesc = isset($param["ascdesc"]) ? $param["ascdesc"] : "";
+      if (trim($where) <> "") $where = " WHERE ".$param["where"];      
+      // ORDER BY
+      $ascdesc = strtolower(trim($ascdesc));
+      if ($ascdesc == "asc" || $ascdesc == "") $ascdesc == "ASC";
+      if ($ascdesc == "desc") $ascdesc == "DESC";
+      if (trim($orderby) <> "") $orderby = " ORDER BY ".$param["orderby"]." ".$ascdesc;
+
       // SQL
       $query = "SELECT ".$param["select"]." FROM ".
-        $param["tablename"].$where." LIMIT ".$param["limitStart"].",".$param["limitSize"].";"; 
+        $param["tablename"].$where.$orderby." LIMIT ".$param["limitStart"].",".$param["limitSize"].";"; 
       $res = $this->db->query($query);
 
       // TODO: Also read out statemachine and concat with results
@@ -406,6 +414,10 @@ used to vertically center elements, may need modification if you're not using de
   margin-bottom: 10px;
 }
 
+/* Table */
+table th span {cursor: pointer;}
+table th span:hover {color: steelblue;}
+
 /* State Engine */
 .state1 {background-color: green;}
 .state2 {background-color: yellow;}
@@ -517,7 +529,13 @@ used to vertically center elements, may need modification if you're not using de
               <table class="table table-bordered table-hover">
                 <thead>
                   <tr>
-                    <th ng-repeat="col in table.columnsX">{{col.COLUMN_NAME}}</th>
+                    <th ng-repeat="col in table.columnsX">
+                      <span ng-click="sortCol(table, col.COLUMN_NAME, $index)">
+                      	<span>{{col.COLUMN_NAME}}</span>
+                      	<span ng-show="sqlascdesc[$index] == 'asc'" class="glyphicon glyphicon-sort-by-attributes"></span>
+                      	<span ng-show="sqlascdesc[$index] == 'desc'" class="glyphicon glyphicon-sort-by-attributes-alt"></span>
+                      </span>
+                    </th>
                     <th ng-hide="table.is_read_only"><em class="fa fa-cog"></em></th>
                   </tr>
                 </thead>
@@ -534,7 +552,7 @@ used to vertically center elements, may need modification if you're not using de
                           ng-click="openSEPopup(table, row)">{{subState(cell)}}</button>
                       </div>
                       <!-- Normal field -->
-                      <p ng-hide="((table.columnames[$index].indexOf('state') >= 0) && table.SE_enabled)">{{cell | limitTo: 20}}</p>
+                      <p ng-hide="((table.columnames[$index].indexOf('state') >= 0) && table.SE_enabled)">{{cell | limitTo: 20}}{{cell.length > 20 ? '...' : ''}}</p>
                     </td>
                     <!-- Edit options -->
                     <td class="controllcoulm" ng-hide="table.is_read_only">
@@ -721,6 +739,8 @@ app.controller('genCtrl', function ($scope, $http, $sce) {
   $scope.PageIndex = 0;
   $scope.PageLimit = 10; // default = 10
   $scope.sqlwhere = []
+  $scope.sqlorderby = []
+  $scope.sqlascdesc = []
   $scope.nextstates = []
   $scope.statenames = []
 
@@ -732,6 +752,17 @@ app.controller('genCtrl', function ($scope, $http, $sce) {
       return '<div class="row"><div class="col-md-12 col-sm-12 col-xs-12 column"><div class="ge-content ge-content-type-ckeditor" data-ge-content-type="ckeditor"><p>Deutsch</p></div></div></div>'
     if (index == 4)
       return 6
+  }
+
+  $scope.sortCol = function(table, columnname, index) {
+    console.log("Click-----------> SORT")
+
+    // TODO: Make sorting by table and not globally
+	$scope.sqlascdesc = []
+
+    $scope.sqlorderby[index] = columnname
+    $scope.sqlascdesc[index] = ($scope.sqlascdesc[index] == "desc") ? "asc" : "desc"
+    $scope.refresh(table, index)
   }
 
   $scope.changeRow = function(table, row, operation) {
@@ -943,7 +974,9 @@ app.controller('genCtrl', function ($scope, $http, $sce) {
   // Refresh Function
   $scope.refresh = function(scope_tbl, index) {
   	$scope.status = "Refreshing...";
-    console.log($scope.sqlwhere[index]);
+    console.log("WHERE", $scope.sqlwhere[index]);
+    console.log("ORDERBY", $scope.sqlorderby[index]);
+    console.log("ASCDESC", $scope.sqlascdesc[index]); // [asc, desc]
   	// Request from server
   	$http({
   		url: window.location.pathname, // use same page for reading out data
@@ -955,7 +988,9 @@ app.controller('genCtrl', function ($scope, $http, $sce) {
   			limitStart: $scope.PageIndex * $scope.PageLimit,
   			limitSize: $scope.PageLimit,
   			select: "*",
-        	where: $scope.sqlwhere[index]
+        where: $scope.sqlwhere[index],
+        orderby: $scope.sqlorderby[index],
+        ascdesc: $scope.sqlascdesc[index]
   		}
   	}
   	}).success(function(response){
