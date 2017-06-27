@@ -644,7 +644,7 @@ table th span:hover {color: steelblue;}
       </div>
     </div>
   <!-- Modal for Editing DataRows -->
-  <div class="modal fade" id="modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+  <div class="modal fade" id="modal" tabindex="-1" role="dialog">
     <div class="modal-dialog editor" role="document">
       <div class="modal-content">
         <div class="modal-header">
@@ -687,7 +687,7 @@ table th span:hover {color: steelblue;}
     </div>
   </div>
 	<!-- Modal for StateEngine -->
-	<div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+	<div class="modal fade" id="myModal" tabindex="-1" role="dialog">
 	  <div class="modal-dialog" role="document">
 	    <div class="modal-content">
 	      <div class="modal-header">
@@ -763,10 +763,14 @@ app.controller('genCtrl', function ($scope, $http, $sce) {
 
 
   $scope.initVal = function(index) {
+  	/*
     if (index == 2)
       return '<div class="row"><div class="col-md-12 col-sm-12 col-xs-12 column"><div class="ge-content ge-content-type-ckeditor" data-ge-content-type="ckeditor"><p>English</p></div></div></div>'
     if (index == 3)
       return '<div class="row"><div class="col-md-12 col-sm-12 col-xs-12 column"><div class="ge-content ge-content-type-ckeditor" data-ge-content-type="ckeditor"><p>Deutsch</p></div></div></div>'
+    */
+    if (index == 2 || index == 3)
+    	return '';
     if (index == 4)
       return 6
   }
@@ -775,7 +779,7 @@ app.controller('genCtrl', function ($scope, $http, $sce) {
     console.log("Click-----------> SORT")
 
     // TODO: Make sorting by table and not globally
-	$scope.sqlascdesc = []
+	//$scope.sqlascdesc = []
 
     $scope.sqlorderby[index] = columnname
     $scope.sqlascdesc[index] = ($scope.sqlascdesc[index] == "desc") ? "asc" : "desc"
@@ -1017,14 +1021,12 @@ app.controller('genCtrl', function ($scope, $http, $sce) {
   		$scope.tables.find(function(tbl){return tbl.table_name == scope_tbl.table_name}).rows = response;
   	})
   	$scope.status = "Refreshing... done";
+  	clearEditors()
   }
 
   $scope.initTables();
 
   $scope.initEditor = function() {
-    //$scope.var_a = $sce.trustAsHtml($scope.selectedTask.replacer_language_de);
-    //$scope.var_b = $sce.trustAsHtml($scope.selectedTask.replacer_language_en);
-
     console.log("##########################################");
 
     // Editor 1 init
@@ -1059,14 +1061,11 @@ app.controller('genCtrl', function ($scope, $http, $sce) {
   $scope.send = function(cud, param){
     //console.log(param.x)
     console.log("-> Send # CUD=", cud, "Params:", param)
-
     var body = {cmd: 'cud', paramJS: {}}
 
     // TODO: remove this
     // load in memory
-    if (param)
-    	$scope.loadRow(param.table, param.row)
-
+    if (param) $scope.loadRow(param.table, param.row)
 
     // TODO: probably not the best idea to send the primary columns from client
     // better assebmle them on the server side
@@ -1096,15 +1095,7 @@ app.controller('genCtrl', function ($scope, $http, $sce) {
     }
 
     // Assemble data for Create, Update, Delete Functions
-    // TODO: ----> kann man verbessern, alles sehr ähnlich
-    if (cud == 'create') {
-      body.paramJS = {
-        row: param.row,
-        table: param.table.table_name,
-        primary_col: param.table.primary_col
-      }
-    }
-    else if (cud == 'delete' || cud == 'update' || cud == 'getNextStates' || cud == 'getStates') {
+	if (cud == 'create' || cud == 'delete' || cud == 'update' || cud == 'getNextStates' || cud == 'getStates') {
     	console.log($scope.selectedTable)
     	console.log($scope.selectedTask)
    		// Confirmation when deleting
@@ -1143,36 +1134,9 @@ app.controller('genCtrl', function ($scope, $http, $sce) {
         $scope.lastResponse = response;
 
         // GUI Notifications for user feedback
-        //-------------------- Entry Deleted
-        if (response != 0 && (cud == 'delete' || cud == 'update')) {
-          // if state was updated then
-          //$('#myModal').modal('hide')
-          // Refresh current table
-          /*act_tbl = $scope.tables.find(function(t){
-            return t.table_name == param.table.table_name})*/
+        //-------------------- Entries changed
+        if (response != 0 && (cud == 'delete' || cud == 'update' || cud == 'create')) {
           $scope.refresh($scope.selectedTable)
-        }
-        //-------------------- Entry Created
-        else if (cud == 'create' && response != 0) {
-          console.log("-> Entry was created");
-
-
-        	// Find current table
-        	act_tbl = $scope.tables.find(function(t){return t.table_name == param.table.table_name});
-
-          // Clear all entry fields
-          for (var x=0;x<act_tbl.newRows.length;x++) {
-            for (var y=0;y<act_tbl.newRows[x].length;y++) {
-              act_tbl.newRows[x][y] = '';            
-            }
-          }
-          // Set focus on first element after adding, usability issues
-          $(".nRws").first().focus();
-
-
-
-        	// Refresh current table 
-        	$scope.refresh($scope.selectedTable)
         }
         //---------------------- StateEngine (List Transitions)
         else if (cud == 'getNextStates') {
@@ -1203,9 +1167,13 @@ app.directive('animateOnChange', function($timeout) {
 });
   //--------------------------------------------- CUSTOM JS
 
-  $('#modal').on('hidden.bs.modal', function () {
+  function clearEditors() {
     $('.grid1').empty()
     $('.grid2').empty()
+  }
+
+  $('#modal').on('hidden.bs.modal', function () {
+  	clearEditors()
   })
 
 </script>
