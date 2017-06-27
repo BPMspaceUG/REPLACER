@@ -232,7 +232,24 @@
       $where = isset($param["where"]) ? $param["where"] : "";
       $orderby = isset($param["orderby"]) ? $param["orderby"] : "";
       $ascdesc = isset($param["ascdesc"]) ? $param["ascdesc"] : "";
-      if (trim($where) <> "") $where = " WHERE ".$param["where"];      
+      // SEARCH
+      if (trim($where) <> "") {
+      	// Do a search
+      	$res = $this->db->query("SHOW COLUMNS FROM ".$param["tablename"].";");
+      	$k = [];
+      	while ($row = $res->fetch_array()) {
+      		$k[] = $row[0];
+      	}
+		// xxx LIKE = '%".$param["where"]."%' OR yyy LIKE '%'
+      	$q_str = "";
+      	foreach ($k as $key) {
+      		$q_str .= " ".$key." LIKE '%".$where."%' OR ";
+      	}
+      	// Remove last 'OR '
+      	$q_str = substr($q_str, 0, -3);
+
+      	$where = " WHERE ".$q_str;
+      }
       // ORDER BY
       $ascdesc = strtolower(trim($ascdesc));
       if ($ascdesc == "asc" || $ascdesc == "") $ascdesc == "ASC";
@@ -516,7 +533,7 @@ table th span:hover {color: steelblue;}
                 <!-- Where filter -->
                 <form class="form-inline pull-right">
                   <div class="form-group">
-                    <input type="text" class="form-control" style="width:200px;" placeholder="WHERE"
+                    <input type="text" class="form-control" style="width:200px;" placeholder="Search..."
                       ng-model="sqlwhere[$index]" />
                     <button class="btn btn-default" title="Refresh table"
                       ng-click="refresh(table, $index);"><i class="fa fa-refresh"></i></button>
