@@ -254,7 +254,10 @@
       $ascdesc = strtolower(trim($ascdesc));
       if ($ascdesc == "asc" || $ascdesc == "") $ascdesc == "ASC";
       if ($ascdesc == "desc") $ascdesc == "DESC";
-      if (trim($orderby) <> "") $orderby = " ORDER BY ".$param["orderby"]." ".$ascdesc;
+      if (trim($orderby) <> "")
+        $orderby = " ORDER BY ".$param["orderby"]." ".$ascdesc;
+      else
+        $orderby = " ORDER BY replacer_id DESC";
 
       // SQL
       $query = "SELECT ".$param["select"]." FROM ".
@@ -557,37 +560,12 @@ table th span:hover {color: steelblue;}
                   </tr>
                 </thead>
                 <tbody>
-                  <!-- Table Content -->
-                  <tr ng-repeat="row in table.rows track by $index" ng-model="table"
-                      data-toggle='modal' data-target="modal-container-1"
-                      id="row{{'' + $parent.$index + $index}}">
-                    <!-- Data entries -->
-                    <td animate-on-change="cell" ng-repeat="cell in row track by $index">
-                      <!-- Substitue State Machine -->
-                      <div ng-if="((table.columnames[$index].indexOf('state') >= 0) && table.SE_enabled)">
-                        <button class="btn" ng-class="'state'+cell"
-                          ng-click="openSEPopup(table, row)">{{subState(cell)}}</button>
-                      </div>
-                      <!-- Normal field -->
-                      <p ng-hide="((table.columnames[$index].indexOf('state') >= 0) && table.SE_enabled)">{{cell | limitTo: 20}}{{cell.length > 20 ? '...' : ''}}</p>
-                    </td>
-                    <!-- Edit options -->
-                    <td class="controllcoulm" ng-hide="table.is_read_only">
-                      <!-- Update Button -->
-                      <a class="btn btn-default" data-toggle="modal" data-target="#modal" ng-click="loadRow(table, row)">
-                        <i class="fa fa-pencil"></i>
-                      </a>
-                      <!-- Delete Button -->
-                      <button id="del{{$index}}" class="btn btn-danger" title="Delete this Row"
-                        ng-click="send('delete', {row:row, colum:$index, table:table})">
-                        <i class="fa fa-times"></i></button>
-                    </td>
-                  </tr>
+
                   <!-- ############################## N E W ##### R O W #################################### -->
                   <!-- Table AddRow -->
                   <tr class="newRows" ng-hide="table.is_read_only">
                    <td ng-repeat="col in table.newRows[0] track by $index">
-                      <div ng-if="$index != 0">
+                      <div ng-if="$index != 0 && $index != 2 && $index != 3">
                         <!--<textarea class="form-control nRws" ng-model="table.newRows[0][$index]"></textarea>-->
                         <!-- Number -->
                         <input class="form-control nRws" type="number"
@@ -614,6 +592,34 @@ table th span:hover {color: steelblue;}
                         ng-click="send('create', {row:table.newRows[0], table:table})">
                         <i class="fa fa-plus"></i> Add</button>
                    </td>
+                  </tr>
+
+
+                  <!-- Table Content -->
+                  <tr ng-repeat="row in table.rows track by $index" ng-model="table"
+                      data-toggle='modal' data-target="modal-container-1"
+                      id="row{{'' + $parent.$index + $index}}">
+                    <!-- Data entries -->
+                    <td animate-on-change="cell" ng-repeat="cell in row track by $index">
+                      <!-- Substitue State Machine -->
+                      <div ng-if="((table.columnames[$index].indexOf('state') >= 0) && table.SE_enabled)">
+                        <button class="btn" ng-class="'state'+cell"
+                          ng-click="openSEPopup(table, row)">{{subState(cell)}}</button>
+                      </div>
+                      <!-- Normal field -->
+                      <p ng-hide="((table.columnames[$index].indexOf('state') >= 0) && table.SE_enabled)">{{cell | limitTo: 20}}{{cell.length > 20 ? '...' : ''}}</p>
+                    </td>
+                    <!-- Edit options -->
+                    <td class="controllcoulm" ng-hide="table.is_read_only">
+                      <!-- Update Button -->
+                      <a class="btn btn-default" data-toggle="modal" data-target="#modal" ng-click="loadRow(table, row)">
+                        <i class="fa fa-pencil"></i>
+                      </a>
+                      <!-- Delete Button -->
+                      <button id="del{{$index}}" class="btn btn-danger" title="Delete this Row"
+                        ng-click="send('delete', {row:row, colum:$index, table:table})">
+                        <i class="fa fa-times"></i></button>
+                    </td>
                   </tr>
                 </tbody>
               </table>
@@ -1136,6 +1142,13 @@ app.controller('genCtrl', function ($scope, $http, $sce) {
         // GUI Notifications for user feedback
         //-------------------- Entries changed
         if (response != 0 && (cud == 'delete' || cud == 'update' || cud == 'create')) {
+          // Clear entries
+          if (cud == 'create') {
+            $scope.selectedTable.newRows[0][1] = ''
+            $scope.selectedTable.newRows[0][2] = ''
+            $scope.selectedTable.newRows[0][3] = ''
+          }
+          // Refresh
           $scope.refresh($scope.selectedTable)
         }
         //---------------------- StateEngine (List Transitions)
