@@ -51,7 +51,7 @@
       return $this->parseToJSON($res);
     }
     //================================== REPLACER
-    public function replace($RP,$replacer,$language) {
+    public function replace($RP,$replacer,$language,$isId = null) {
 	  $command = 'read';
 	  $paramJS = array("tablename,limitStart,limitSize,select");
 	  $params = array("paramJS");
@@ -79,7 +79,11 @@
 	}
 		
 	  $params["paramJS"]['select']=$language_col;
-	  $params["paramJS"]['where']='replacer_pattern = "' . $replacer .'"';
+    if(!is_null($isId)){
+       $params["paramJS"]['where']='replacer_id = "' . $replacer .'"';
+    }
+      else {
+	  $params["paramJS"]['where']='replacer_pattern = "' . $replacer .'"';}
 	  //print_r($params["paramJS"]);
 	  $result = $RP->$command($params["paramJS"]);
 	  // Output
