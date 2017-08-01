@@ -8,10 +8,11 @@
   class RePlacer {
     // Variables
     private $db;
+    private $counter;
 
     public function __construct() {      
 	require_once './../DB_config/login_credentials_DB_bpmspace_replacer_RO.inc.php';
-	
+	    $this->counter = 0;
       // create DB connection object
       $db = new mysqli(
         $config['db']['host'],
@@ -88,9 +89,36 @@
 	  $result = $RP->$command($params["paramJS"]);
 	  // Output
 	  $result = json_decode ($result);
+
 	  if (count($result) > 0) {
 		$result = get_object_vars($result[0])["$language_col"];
+    
 	  } else $result = "REPLACER nothing in REPLACER DB for pattern <strong>\"" . $replacer."\"";
+
+    $parts = explode("#!#", $result);
+
+// Maximum number of repacements on one slide = 10 for performance reasons
+
+    if (count($parts) > 22){
+        $result = "On this slide there are more than (22/2)-1 replacements";
+      }
+    else if(count($parts)>1){
+      if($this->counter > 9){
+        $result = "More than 10 recursive Replacements";
+      }
+      else {
+
+        $this->counter += 1;
+        $rep = $RP->replace($RP,$parts[1],$language); // If you want to replace the replacer with id ,$isId has to be added and some debugging to be done.
+
+        $result = $parts[0].$rep.$parts[2];
+        }
+      }
+      
+       
+    else $result = $parts[0];
+    $this->counter = 0;
+    
 	  return $result;
 	}	
   }
