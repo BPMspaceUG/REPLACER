@@ -10,10 +10,13 @@
     private $db;
     private $counter;
 
-    public function __construct() {      
-	require_once './../DB_config/login_credentials_DB_bpmspace_replacer_RO.inc.php';
+    public function __construct() {   
+
+      require_once __DIR__.'/../../DB_config/login_credentials_DB_bpmspace_replacer_RO.inc.php';
+
 	    $this->counter = 0;
       // create DB connection object
+      
       $db = new mysqli(
         $config['db']['host'],
         $config['db']['user'],
@@ -97,6 +100,12 @@
 
     $parts = explode("#!#", $result);
 
+// Create array for all the patterns to be replaced in in slide.
+
+    $arr = array();
+
+ //   print_r($arr);
+
 // Maximum number of repacements on one slide = 10 for performance reasons
 
     if (count($parts) > 22){
@@ -106,12 +115,23 @@
       if($this->counter > 9){
         $result = "More than 10 recursive Replacements";
       }
-      else {
+    else {
+            $this->counter += 1;
+            $result = $parts[0];
+            foreach ($parts as $key => $value) {
+              if (($key % 2) == 1) {
+                $rep = $RP->replace($RP,$value,$language);
+                if(empty($parts[$key+1])){
+                $result .= $rep;
+                }
+                else  
+                $result .= $rep.$parts[$key+1];
+              }
+            }
 
-        $this->counter += 1;
-        $rep = $RP->replace($RP,$parts[1],$language); // If you want to replace the replacer with id ,$isId has to be added and some debugging to be done.
+//        $rep = $RP->replace($RP,$parts[1],$language); // If you want to replace the replacer with id ,$isId has to be added and some debugging to be done.
 
-        $result = $parts[0].$rep.$parts[2];
+ //       $result = $parts[0].$rep.$parts[2];
         }
       }
       
