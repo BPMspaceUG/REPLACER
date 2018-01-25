@@ -20,3 +20,10 @@ CREATE TABLE `replacer_tag_id` (
 ALTER TABLE `bpmspace_replacer_v1`.`replacer` 
 ADD COLUMN `state_id_replacer` INT(11) NULL AFTER `replacer_language_de`,
 ADD COLUMN `replacercol` VARCHAR(45) NULL AFTER `state_id_replacer`;
+
+SET FOREIGN_KEY_CHECKS = 0;
+
+ALTER TABLE `bpmspace_replacer_v1`.`replacer` 
+CHANGE COLUMN `replacer_id` `replacer_id` BIGINT(20) NOT NULL AUTO_INCREMENT ;
+
+SET FOREIGN_KEY_CHECKS = 1;
