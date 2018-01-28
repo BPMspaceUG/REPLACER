@@ -8,7 +8,7 @@
   sec_session_start();
   
   if(login_check($mysqli) != true) {
-    header("Location: $filepath_liam/index.php?error_messages='You are not logged in!'");
+    header("Location: $url_liam/index.php?error_messages='You are not logged in!'");
     die();
   }
   else {
