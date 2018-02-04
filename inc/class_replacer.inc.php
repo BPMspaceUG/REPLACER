@@ -138,6 +138,8 @@
        
     else $result = $parts[0];
     $this->counter = 0;
+	
+	$result = "</br><!-- Pattern Replace Start" . $replacer ." --></br>". $result . "</br><!-- Pattern Replace End" . $replacer ." --></br>";
     
 	  return $result;
 	}	

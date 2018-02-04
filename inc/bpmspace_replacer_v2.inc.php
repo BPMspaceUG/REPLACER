@@ -1,10 +1,12 @@
 <?php
-  //Header
+  // Header for testing
+  /*
   //header('Access-Control-Allow-Origin: *');
   //header('Access-Control-Allow-Methods: POST');
-  //Includes
-  //include_once("bpmspace_replacer_v1-config.php");
-  //Parameter and inputstream
+  */
+  // Includes
+  // include_once("bpmspace_replacer_v2-config.php");
+  // Parameter and inputstream
   $params = json_decode(file_get_contents('php://input'), true);
   $command = $params["cmd"];
   
@@ -24,7 +26,6 @@
       if ($this->table != "")
       	$this->ID = $this->getSMIDByTablename($tablename);
     }
-
     private function getResultArray($rowObj) {
       $res = array();
       if (!$rowObj) return $res; // exit if query failed
@@ -46,7 +47,6 @@
       $res = $this->db->query($query);
       return $this->getResultArray($res);
     }
-
     public function createDatabaseStructure() {
     	$db_name = $this->db_name;
     	// ------------------------------- T A B L E S
@@ -151,13 +151,16 @@
       $this->db->query($query);
       return $ID;
     }
-    // TODO:
     public function getBasicFormDataByColumns($columns) {
       // possibilities = [RO, RW, HD]
       $res = array();
       // Loop each column
       for ($i=0;$i<count($columns);$i++) {
-        $res[$columns[$i]] = "RO";
+      	// if coumn is state_id then Hide it
+      	if ($columns[$i] == 'state_id')
+					$res[$columns[$i]] = "HI";
+      	else      		
+        	$res[$columns[$i]] = "RO"; // default: Read write
       }
       return $res;
     }
@@ -168,7 +171,10 @@
         "WHERE statemachine_id = $this->ID AND state_id = $StateID;";
       $res = $this->db->query($query);
       $r = $this->getResultArray($res);
-      return $r[0]['fd'];
+      if ($r)
+        return $r[0]['fd'];
+      else
+        return '';
     }
     public function getCreateFormByTablename() {
       if (!($this->ID > 0)) return "";
@@ -177,7 +183,10 @@
         "WHERE id = $this->ID;";
       $res = $this->db->query($query);
       $r = $this->getResultArray($res);
-      return $r[0]['fd'];
+      if ($r)
+        return $r[0]['fd'];
+      else
+        return '';
     }
     public function getID() {
     	return $this->ID;
@@ -257,6 +266,7 @@
       $cnt = $res->num_rows;
       return ($cnt > 0);
     }
+
     public function getTransitionScripts($fromID, $toID) {
       settype($fromID, 'integer');
       settype($toID, 'integer');
@@ -267,6 +277,14 @@
       $return = $this->getResultArray($res);
       return $return;
     }
+    public function getTransitionScriptCreate() {
+      if (!($this->ID > 0)) return ""; // check for valid state machine
+      $query = "SELECT transition_script FROM $this->db_name.state_machines WHERE id = $this->ID;";
+      $res = $this->db->query($query);
+      $script = $this->getResultArray($res);
+      return $script[0];
+    }
+
   }
 
 
@@ -342,33 +360,72 @@
       global $config_tables_json;
       return $config_tables_json;
     }
+    private function splitQuery($row) {
+      $res = array();
+      foreach ($row as $key => $value) { 
+        // Escape to prevent sqli or harmful parameters
+        $k = $this->db->real_escape_string($key);
+        $v = $this->db->real_escape_string($value);
+        $res[] = array("key" => $k, "value" => $v);
+      }
+      return $res;
+    }
     //================================== CREATE
     public function create($param) {
       // Inputs
       $tablename = $param["table"];
-      $rowdata = $param["row"];
-      // Split array
-      foreach ($rowdata as $key => $value) {        
-        // Check if has StateMachine // TODO: Optimize
-        if ($value == '%!%PLACE_EP_HERE%!%') {
-          $SE = new StateMachine($this->db, DB_NAME, $tablename);
-          $value = $SE->getEntryPoint();
+      // New State Machine
+      $SM = new StateMachine($this->db, DB_NAME, $tablename);
+      // Check Query
+      $x = $this->splitQuery($param["row"]);
+      // Substitute Value for EntryPoint of Statemachine
+      for ($i=0;$i<count($x);$i++) {
+        // TODO: Make this better
+        // (EP from client, and then check if correct in server)
+        if ($x[$i]["value"] == '%!%PLACE_EP_HERE%!%')
+          $x[$i]["value"] = $SM->getEntryPoint();
+      }
+      // Rebuild Object
+      for ($i=0;$i<count($param["row"]);$i++) {
+        $param["row"][$x[$i]["key"]] = $x[$i]["value"];
+      }
+      // Execute transition script
+      if ($SM->getID() > 0) {
+        // Has StateMachine
+        $script = $SM->getTransitionScriptCreate();
+        // Execute Script
+        eval($script["transition_script"]);
+        // -----------> Standard Result
+        if (empty($script_result)) {
+          $script_result = array(
+            "allow_transition" => true,
+            "show_message" => false,
+            "message" => ""
+          );
         }
-        // Append and escape to prevent sqli
-        $keys[] = $this->db->real_escape_string($key);
-        $vals[] = $this->db->real_escape_string($value);
+      } else {
+        // NO StateMachine
+        $script_result = array("allow_transition" => true);
       }
-      // Checking
-      if (count($keys) != count($vals)) {
-        echo "ERORR while buiding Query! (k=".count($keys).", v=".count($vals).")";
-        exit;
+
+      // If allow transition then Create
+      if (@$script_result["allow_transition"] == true) {        
+      	// Reload row, because maybe the TransitionScript has changed some params
+        $keys = array();
+        $vals = array();
+        $x = $this->splitQuery($param["row"]);
+        foreach ($x as $el) {
+          $keys[] = $el["key"];
+          $vals[] = $el["value"];
+        }
+        // --- Operation CREATE
+        $query = "INSERT INTO ".$tablename." (".implode(",", $keys).") VALUES ('".implode("','", $vals)."');";
+        $res = $this->db->query($query);
+        $lastID = $this->db->insert_id;
+        $script_result["element_id"] = $lastID; // Special Case
       }
-      // Operation
-      $query = "INSERT INTO ".$tablename." (".implode(",", $keys).") VALUES ('".implode("','", $vals)."');";
-      $res = $this->db->query($query);
-      $lastID = $this->db->insert_id;
-      // Output (return last id instead of 1)
-      return $res ? $lastID : "0";
+      // Return
+      return json_encode($script_result);
     }
     //================================== READ
     public function read($param) {
@@ -462,6 +519,7 @@
       // Output
       return $res ? "1" : "0";
     }
+    //----------------------------------
     public function getFormData($param) {
       $tablename = $param["table"];
       $SM = new StateMachine($this->db, DB_NAME, $tablename);
@@ -491,11 +549,21 @@
     }
     //==== Statemachine -> substitue StateID of a Table with Statemachine
     public function getNextStates($param) {
-      // Find right column (Maybe optimize with GUID)
+      // Inputs
       $row = $param["row"];
+      $tablename = $param["table"];
+
+      // Find correct state_id with the inputs
+      $pCols = $this->getPrimaryColByTablename($tablename);
+      $where = $this->buildSQLWherePart($pCols, $param["row"]);
+      $query = "SELECT state_id FROM ".DB_NAME.".$tablename WHERE ".$where.";";
+      $res = $this->db->query($query);
+      $r = $res->fetch_array();
+      $stateID = $r[0][0];
 
       // TODO: Get StateID not from client -> find itself by using [table, ElementID]
       // {
+      /*
       $stateID = false;
       foreach ($row as $key => $value) {
         // if column contains *state_id*
@@ -507,20 +575,20 @@
       // Return invalid
       if ($stateID === false) return json_encode(array());
       // }
-      
+      */
       // execute query
-      $tablename = $param["table"];
       $SE = new StateMachine($this->db, DB_NAME, $tablename);
       $res = $SE->getNextStates($stateID);
       return json_encode($res);
     }
     public function makeTransition($param) {
+      // INPUT [table, ElementID, (next)state_id]
       // Get the next ID for the next State
-      $nextStateID = $param["row"]["state_id"];
-      $tablename = $param["table"];
-      $pricols = $this->getPrimaryColByTablename($tablename);
-      $pricol = $pricols[0]; // Count should always be 1
-      $ElementID = $param["row"][$pricol];
+      @$nextStateID = $param["row"]["state_id"];
+      @$tablename = $param["table"];
+      @$pricols = $this->getPrimaryColByTablename($tablename);
+      @$pricol = $pricols[0]; // Should always be 1 (Only one column for Identification)
+      @$ElementID = $param["row"][$pricol];
       // Statemachine
       $SE = new StateMachine($this->db, DB_NAME, $tablename);
       // get ActStateID
@@ -534,12 +602,12 @@
       $result = $SE->setState($ElementID, $nextStateID, $pricol, $param);
       // Check if was a recursive state
       $r = json_decode($result, true);
-      // Special case [Save] transition
-      if ($nextStateID == $actstateID) {
+      // Not only at save, also when going to another state - Special case [Save] transition
+      //if ($nextStateID == $actstateID) {
         if ($r["allow_transition"]) {
           $this->update($param); // Update all other rows
         }
-      }
+      //}
       // Return to client
       echo $result;
     }
@@ -573,7 +641,7 @@
 ?><!DOCTYPE html>
 <html lang="en-US">
 <head>
-  <title>bpmspace_replacer_v1</title>
+  <title>bpmspace_replacer_v2</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- CSS -->
@@ -703,12 +771,11 @@ thead tr {background-color: #eee;}
         </a>
       </div>
       <div class="col-md-12 collapse" id="bpm-liam-header">
-        <?php include_once('../_header_LIAM.inc.php'); ?>          
+        <?php include_once("$filepath_liam/_header_LIAM.inc.php"); ?>          
       </div>
     </div>
   </div>
-  <div class="row collapse">
-    <div class="col-md-12" id="bpm-logo">
+  <div class="col-md-12 collapse" style="margin-top: 10px" id="bpm-logo">
       <div class="col-md-6 ">
         <svg height="100" width="100">
           <rect fill="red" x="0" y="0" width="100" height="100" rx="15" ry="15"></rect>
@@ -722,7 +789,6 @@ thead tr {background-color: #eee;}
         </svg>
       </div>
     </div>
-  </div>
   <!-- NAVIGATION -->
   <!--
   <ul class="nav nav-tabs" role="tablist" id="myTabs">
@@ -895,9 +961,7 @@ thead tr {background-color: #eee;}
           <!-- Add if is in menu -->
           <div class="form-group"
             ng-repeat="(key, value) in selectedRow"
-            ng-if="getColByName(selectedTable, key).is_in_menu
-              && !(selectedTable.se_active && (key.indexOf('state_id') >= 0))
-              && (selectedTable.form_data[key] != 'HI')">
+            ng-if="getColByName(selectedTable, key).is_in_menu && (selectedTable.form_data[key] != 'HI')">
             <!-- [LABEL] -->
             <label class="col-sm-3 control-label">{{getColAlias(selectedTable, key)}}</label>
             <!-- [VALUE] -->
@@ -906,7 +970,8 @@ thead tr {background-color: #eee;}
               <span ng-if="getColByName(selectedTable, key).foreignKey.table != ''">
                 <a class="btn btn-default"
                   ng-click="(selectedTable.form_data[key] == 'RO') || openFK(key)"
-                  ng-readonly="selectedTable.form_data[key] == 'RO'">
+                  ng-readonly="selectedTable.form_data[key] == 'RO'"
+                  ng-disabled="selectedTable.form_data[key] == 'RO'">
                   <i class="fa fa-key"></i> {{value}}
                 </a>
               </span>
@@ -950,7 +1015,7 @@ thead tr {background-color: #eee;}
       </div>
       <div class="modal-footer">
         <!-- CREATE / CLOSE -->
-        <button class="btn btn-success" data-dismiss="modal" ng-click="send('create', {row: selectedRow, table: selectedTable})">
+        <button class="btn btn-success" ng-click="send('create', {row: selectedRow, table: selectedTable})">
           <i class="fa fa-plus"></i> Create</button>
         &nbsp;
         <button class="btn btn-default pull-right" type="button" data-dismiss="modal">
@@ -976,10 +1041,8 @@ thead tr {background-color: #eee;}
         <form class="form-horizontal">
           <!-- Add if is in menu -->
           <div class="form-group"
-            ng-repeat="(key, value) in selectedRow"
-            ng-if="getColByName(selectedTable, key).is_in_menu
-                && !(selectedTable.se_active && (key.indexOf('state_id') >= 0))
-                && (selectedTable.form_data[key] != 'HI')">
+            ng-repeat="(key, value) in selectedRow track by $index"
+            ng-if="getColByName(selectedTable, key).is_in_menu && (selectedTable.form_data[key] != 'HI')">
             <!-- [LABEL] -->
             <label class="col-sm-3 control-label">{{getColAlias(selectedTable, key)}}</label>
             <!-- [VALUE] -->
@@ -988,15 +1051,23 @@ thead tr {background-color: #eee;}
               <span ng-if="getColByName(selectedTable, key).foreignKey.table != ''">
               	<a class="btn btn-default"
                   ng-click="(selectedTable.form_data[key] == 'RO') || openFK(key)"
-                  ng-readonly="selectedTable.form_data[key] == 'RO'">
+                  ng-readonly="selectedTable.form_data[key] == 'RO'"
+                  ng-disabled="selectedTable.form_data[key] == 'RO'"
+                  >
                   <i class="fa fa-key"></i> {{value}}
                 </a>
               </span>
               <!-- NO FK -->
               <span ng-if="getColByName(selectedTable, key).foreignKey.table == ''">
                 <!-- Number  -->
+                <p class="form-control-static" ng-if="key == 'state_id'">
+                  <b ng-class="'state'+ selectedRow[key]">
+                  {{substituteSE(selectedTable.table_name, selectedRow[key])}}
+                </b>
+                </p>
+                <!-- Number  -->
                 <input class="form-control" type="number" string-to-number 
-                  ng-if="getColByName(selectedTable, key).COLUMN_TYPE.indexOf('int') >= 0
+                  ng-if="key != 'state_id' && getColByName(selectedTable, key).COLUMN_TYPE.indexOf('int') >= 0
                   && getColByName(selectedTable, key).COLUMN_TYPE.indexOf('tiny') < 0"
                   ng-model="selectedRow[key]"
                   ng-readonly="selectedTable.form_data[key] == 'RO'" autofocus>
@@ -1031,6 +1102,9 @@ thead tr {background-color: #eee;}
         </form>
       </div>
       <div class="modal-footer">
+        <!--
+        <pre>{{selectedRow}}</pre>
+        -->
         <!-- STATE MACHINE -->
         <span class="pull-left" ng-hide="!selectedTable.se_active || selectedTable.hideSmBtns">
           <span ng-repeat="state in selectedTable.nextstates">
@@ -1151,7 +1225,7 @@ thead tr {background-color: #eee;}
       <div class="row text-center">
         <small>
           <ul class="list-inline">
-            <li><b>bpmspace_replacer_v1</b></li>
+            <li><b>bpmspace_replacer_v2</b></li>
             <li>using</li>
             <li><a target="_blank" href="http://getbootstrap.com/">Bootstrap</a></li>
             <li><a target="_blank" href="https://jquery.com/">jQuery</a></li>
@@ -1307,6 +1381,7 @@ app.controller('genCtrl', function ($scope, $http) {
   }
   $scope.gotoState = function(nextstate) {
     $scope.selectedTable.hideSmBtns = true
+    console.log("Trying to transit to stateID " + nextstate.id)
     $scope.selectedRow['state_id'] = nextstate.id
     $scope.send('makeTransition')
   }
@@ -1317,7 +1392,6 @@ app.controller('genCtrl', function ($scope, $http) {
     })
   }
   $scope.initTables = function() {
-	  console.log(window.location.pathname)
     // Request data from config file
   	$http({
   		url: window.location.pathname,
@@ -1327,7 +1401,6 @@ app.controller('genCtrl', function ($scope, $http) {
         paramJS: ''
       }
   	}).success(function(resp){
-		console.log(resp)
       // Init each table
   		resp.forEach(function(t){
         // If table is in menu
@@ -1409,7 +1482,9 @@ app.controller('genCtrl', function ($scope, $http) {
 
   //------------------------------------------------------- Statemachine functions
 
+  // TODO: Remove this function
   $scope.substituteSE = function(tablename, stateID) {
+    console.log("===> ", tablename, "---", stateID)
     t = $scope.getTableByName(tablename)
     if (!t.se_active) return
     // Converts stateID -> Statename
@@ -1431,7 +1506,7 @@ app.controller('genCtrl', function ($scope, $http) {
   			cmd: 'getStates',
   			paramJS: {table: table_name}
   	}
-  	}).success(function(response){
+  	}).success(function(response) {
       t.statenames = response
   	})
   }
@@ -1582,7 +1657,7 @@ app.controller('genCtrl', function ($scope, $http) {
           //else
             //result[col] = row[col]
           // Remove object key
-          delete $scope.selectedRow[col+"________newID"]
+          //delete $scope.selectedRow[col+"________newID"]
         }
       }
     }
@@ -1650,8 +1725,14 @@ app.controller('genCtrl', function ($scope, $http) {
       if (response != 0 && (cud == 'delete' || cud == 'update' || cud == 'create')) {  
         // Created
 				if (cud == 'create') {
-          console.log("New Element with ID", response, "created.")
-          $('#modalCreate').modal('hide') // Hide create-modal
+          //console.log("New Element with ID", response, "created.")
+          //console.log(response)
+          // TODO: Make possible HTML Formated Message -> Small modal
+        	if (response.show_message)
+          	alert(response.message)
+          // Hide create-modal
+          if (response.element_id)
+          	$('#modalCreate').modal('hide')
           // TODO: Maybe jump to entry which was created
         }
         $scope.refresh(body.paramJS.table)
