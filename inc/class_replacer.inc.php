@@ -139,7 +139,7 @@
     else $result = $parts[0];
     $this->counter = 0;
 	
-
+// Creates html comments to see which patterns were replaced and in case of error which patterns are the problematic
   $result = "<!-- Pattern Replace Start: " . $replacer ." -->". $result . "<!-- Pattern Replace End: " . $replacer ." -->";
 
     
