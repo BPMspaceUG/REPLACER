@@ -4,17 +4,17 @@
 	include_once "./inc/class_replacer.inc.php"; 
   
 	$RP = new RePlacer();
-	$replacer = 'TEST_REPLACE';
+	$replacer = 'Test Slide 01 ';
 	echo $RP->replace($RP,$replacer,'en');
 	echo "<hr>";
 	echo $RP->replace($RP,$replacer,'de');
 	echo "<hr>";
-	$replacer = 'TEST_REPLACE_3';
+	$replacer = 'Test Slide not found';
 	echo $RP->replace($RP,$replacer,'en');
 	echo "<hr>";
 	echo $RP->replace($RP,$replacer,'de');
 	echo "<hr>";
-	$replacer = 'T091230123650265890176r02365rtouewi5t48723406rzg0fb48fv';
+	$replacer = 'Test Slide 08 ';
 	echo $RP->replace($RP,$replacer,'en');
 	echo "<hr>";
 	echo $RP->replace($RP,$replacer,'de');

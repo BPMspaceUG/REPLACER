@@ -96,7 +96,7 @@
 	  if (count($result) > 0) {
 		$result = get_object_vars($result[0])["$language_col"];
     
-	  } else $result = "REPLACER nothing in REPLACER DB for pattern <strong>\"" . $replacer."\"";
+	  } else $result = "Nothing in REPLACER DB for pattern: <strong>\"" . $replacer."\"</strong>";
 
     $parts = explode("#!#", $result);
 
@@ -139,7 +139,9 @@
     else $result = $parts[0];
     $this->counter = 0;
 	
-	$result = "</br><!-- Pattern Replace Start" . $replacer ." --></br>". $result . "</br><!-- Pattern Replace End" . $replacer ." --></br>";
+
+  $result = "<!-- Pattern Replace Start: " . $replacer ." -->". $result . "<!-- Pattern Replace End: " . $replacer ." -->";
+
     
 	  return $result;
 	}	
